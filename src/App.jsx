@@ -1,6 +1,4 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import App from './App';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, 
   Users, 
@@ -259,21 +257,23 @@ export default function App() {
   };
 
   useEffect(() => {
+    // Load recorder name
     const savedRecorder = localStorage.getItem('dorm_recorder_name');
     if (savedRecorder) {
       setRecorderName(savedRecorder);
     }
 
+    // Load Issues
     const savedIssues = localStorage.getItem('dorm_issues_data');
     if (savedIssues) {
       setIssues(JSON.parse(savedIssues));
     } else {
+      // Mock initial issues for common areas
       const initialIssues = [
         {
           id: 'iss-1',
           title: 'หลอดไฟทางเดินชั้น 2 ดับ',
           category: 'ไฟฟ้า',
-          roomNumber: 'ส่วนกลาง',
           location: 'หน้าห้อง 203',
           description: 'หลอดไฟกระพริบตลอดเวลาแล้วตอนนี้ดับไป รบกวนเปลี่ยนหลอดใหม่ด้วยค่ะ',
           urgency: 'ปกติ',
@@ -287,7 +287,6 @@ export default function App() {
           id: 'iss-2',
           title: 'เครื่องซักผ้าหยอดเหรียญน้ำรั่ว',
           category: 'ประปา',
-          roomNumber: 'ส่วนกลาง',
           location: 'พื้นที่ซักล้าง ชั้น 1',
           description: 'เครื่องซักผ้าเครื่องที่ 2 มีน้ำซึมออกจากใต้เครื่องนองเต็มพื้นตอนใช้งาน',
           urgency: 'ด่วน',
@@ -306,6 +305,7 @@ export default function App() {
     if (savedRooms) {
       setRooms(JSON.parse(savedRooms));
     } else {
+      // Create initial 20 rooms (Floors 1-4, 5 rooms per floor)
       const initialRooms = Array.from({ length: 20 }, (_, i) => {
         const roomNumber = 101 + Math.floor(i / 5) * 100 + (i % 5);
         const hasTenant = i % 3 !== 0; 
@@ -518,6 +518,24 @@ export default function App() {
     await syncToGoogleSheets('delete_room', { id: roomId, number: room.number });
   };
 
+  const handleOpenEdit = (room) => {
+    setSelectedRoom(room);
+    setEditFormData({
+      id: room.id,
+      tenantName: room.tenantName || '',
+      phone: room.phone || '',
+      rentPrice: room.rentPrice || 3500,
+      prevWater: room.prevWater || 0,
+      currWater: room.currWater || 0,
+      prevElectricity: room.prevElectricity || 0,
+      currElectricity: room.currElectricity || 0,
+      status: room.status,
+      renovationNotes: room.renovationNotes || '',
+      expectedFinishDate: room.expectedFinishDate || ''
+    });
+    setIsEditingRoom(true);
+  };
+
   const handleSaveRoom = async (e) => {
     e.preventDefault();
     
@@ -625,6 +643,7 @@ export default function App() {
         </div>
 
         <div className="flex flex-col sm:flex-row items-center gap-4 w-full md:w-auto justify-end">
+          {/* Active Recorder Display & Input */}
           <div className="flex items-center gap-2 bg-indigo-950/60 px-3.5 py-1.5 rounded-xl border border-indigo-800 w-full sm:w-auto">
             <Users className="h-4 w-4 text-indigo-300 shrink-0" />
             <span className="text-xs text-indigo-200 whitespace-nowrap">ผู้บันทึกข้อมูลปัจจุบัน:</span>
@@ -988,8 +1007,6 @@ export default function App() {
                           currWater: hasTenant ? 135 : 0,
                           prevElectricity: hasTenant ? 450 : 0,
                           currElectricity: hasTenant ? 580 : 0,
-                          renovationNotes: i === 12 ? 'เปลี่ยนแอร์เครื่องใหม่ และทำสีผนังฝั่งระเบียงใหม่' : '',
-                          expectedFinishDate: i === 12 ? '2026-07-25' : '',
                           lastUpdated: new Date().toLocaleDateString('th-TH') + ' ' + new Date().toLocaleTimeString('th-TH'),
                           lastUpdatedBy: 'ระบบเริ่มต้น'
                         };
@@ -1186,6 +1203,8 @@ export default function App() {
                               <div className="flex justify-end">
                                 <button
                                   onClick={() => {
+                                    document.execCommand('copy');
+                                    // Use copy action trick
                                     const el = document.createElement('textarea');
                                     el.value = aiDraftedText;
                                     document.body.appendChild(el);
@@ -1412,7 +1431,6 @@ export default function App() {
                               </span>
                               {!aiAdviceResult[iss.id] && (
                                 <button
-                                  type="button"
                                   onClick={() => handleAiMaintenanceAdvice(iss)}
                                   disabled={isAiAdvising}
                                   className="bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-1 px-2.5 rounded-md text-[10px] transition-colors disabled:opacity-50"
@@ -1661,7 +1679,6 @@ export default function App() {
                 <p className="text-xs text-indigo-200">แก้ไขข้อมูลสถานะ, ผู้เช่า และมิเตอร์น้ำไฟรายเดือน</p>
               </div>
               <button 
-                type="button"
                 onClick={() => { setIsEditingRoom(false); setSelectedRoom(null); }}
                 className="p-1.5 hover:bg-indigo-800 rounded-lg text-indigo-200 transition-colors"
               >
@@ -1900,7 +1917,6 @@ export default function App() {
                 <p className="text-xs text-indigo-200">กรอกข้อมูลเพื่อเปิดห้องพักใหม่ในระบบ</p>
               </div>
               <button 
-                type="button"
                 onClick={() => setIsAddingRoom(false)}
                 className="p-1.5 hover:bg-indigo-800 rounded-lg text-indigo-200 transition-colors"
               >
@@ -2040,7 +2056,6 @@ export default function App() {
                 <p className="text-xs text-indigo-200">กรอกข้อมูลปัญหาส่วนกลางและพื้นที่ต่าง ๆ ในหอพัก</p>
               </div>
               <button 
-                type="button"
                 onClick={() => setIsAddingIssue(false)}
                 className="p-1.5 hover:bg-indigo-800 rounded-lg text-indigo-200 transition-colors"
               >
@@ -2167,7 +2182,6 @@ export default function App() {
                 <p className="text-xs text-indigo-200">ปรับปรุงความคืบหน้าของปัญหาการแจ้งซ่อม</p>
               </div>
               <button 
-                type="button"
                 onClick={() => setSelectedIssue(null)}
                 className="p-1.5 hover:bg-indigo-800 rounded-lg text-indigo-200 transition-colors"
               >
@@ -2238,10 +2252,4 @@ export default function App() {
 
     </div>
   );
-  const root = ReactDOM.createRoot(document.getElementById('root'));
-root.render(
-  <React.StrictMode>
-    <App />
-  </React.StrictMode>
-);
 }
