@@ -1,8 +1,8 @@
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import App from './App.jsx'
-import './index.css' // ถ้ามีไฟล์ css ให้ใส่บรรทัดนี้ด้วย
 
+// ทำการ Render Component หลัก (App) เข้าไปยัง Element ID 'root' ใน index.html
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
     <App />

@@ -1,38 +1,1633 @@
 <!DOCTYPE html>
 <html lang="th">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>DormManager - ระบบจัดการหอพัก 20 ห้อง</title>
-    <!-- โหลด Tailwind CSS และฟอนต์สำหรับตกแต่งหน้าเว็บ -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-      body {
-        font-family: 'Sarabun', sans-serif;
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ระบบบริหารจัดการอพาร์ทเม้นท์อัจฉริยะ</title>
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <!-- Google Fonts (Sarabun & Prompt) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&family=Sarabun:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      font-family: 'Prompt', 'Sarabun', sans-serif;
+    }
+    @media print {
+      body * {
+        visibility: hidden;
       }
-      @media print {
-        header, nav, footer, button, .no-print {
-          display: none !important;
+      #printArea, #printArea * {
+        visibility: visible;
+      }
+      #printArea {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+      }
+    }
+  </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+  <!-- Application Wrapper -->
+  <div id="app" class="flex-grow flex flex-col">
+    
+    <!-- Top Navigation Bar -->
+    <header class="bg-indigo-900 text-white shadow-lg sticky top-0 z-40">
+      <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <div class="flex items-center space-x-3">
+            <div class="p-2 bg-indigo-600 rounded-lg">
+              <i class="fa-solid fa-building-user text-xl text-white"></i>
+            </div>
+            <div>
+              <span class="font-bold text-lg block sm:inline">ApartmentOS</span>
+              <span class="text-xs text-indigo-200 block sm:inline sm:ml-2">ระบบจัดการหอพักอัจฉริยะ v2.0</span>
+            </div>
+          </div>
+          <!-- User Profile & Status -->
+          <div class="flex items-center space-x-4">
+            <div class="hidden md:flex flex-col text-right">
+              <span class="text-sm font-medium" id="current-user-display">ผู้บันทึก: แอดมินหลัก</span>
+              <span class="text-xs text-indigo-300" id="sheet-sync-status"><i class="fa-solid fa-circle-dot text-red-500 mr-1"></i>ไม่ได้เชื่อมต่อ Google Sheet</span>
+            </div>
+            <button onclick="openUserModal()" class="bg-indigo-700 hover:bg-indigo-600 px-3 py-1.5 rounded-lg text-sm flex items-center gap-2 transition duration-200">
+              <i class="fa-solid fa-user-pen"></i>
+              <span class="hidden sm:inline">เปลี่ยนผู้บันทึก</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 sticky top-16 z-30">
+      <div class="max-w-7xl mx-auto px-4 overflow-x-auto scrollbar-none">
+        <div class="flex space-x-2 py-2 min-w-max">
+          <button onclick="switchTab('dashboard')" id="btn-dashboard" class="nav-tab px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 bg-indigo-50 text-indigo-700">
+            <i class="fa-solid fa-chart-line"></i> แดชบอร์ด
+          </button>
+          <button onclick="switchTab('rooms')" id="btn-rooms" class="nav-tab px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-door-open"></i> ผังห้องพัก (<span id="tab-room-count">20</span> ห้อง)
+          </button>
+          <button onclick="switchTab('tenants')" id="btn-tenants" class="nav-tab px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-users"></i> ข้อมูลผู้เช่า & มิเตอร์
+          </button>
+          <button onclick="switchTab('billing')" id="btn-billing" class="nav-tab px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-file-invoice-dollar"></i> คำนวณบิลค่าเช่า
+          </button>
+          <button onclick="switchTab('maintenance')" id="btn-maintenance" class="nav-tab px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-screwdriver-wrench"></i> แจ้งซ่อมพื้นที่ส่วนกลาง
+          </button>
+          <button onclick="switchTab('settings')" id="btn-settings" class="nav-tab px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 text-slate-600 hover:bg-slate-100">
+            <i class="fa-solid fa-cloud-arrow-up"></i> เชื่อมต่อ Google Sheet
+          </button>
+        </div>
+      </div>
+    </nav>
+
+    <!-- Main Content Area -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+      <!-- ALERT BANNER: สัญญาเช่าน้อยกว่า 2 เดือน -->
+      <div id="contract-alert-banner" class="hidden bg-amber-50 border-l-4 border-amber-500 p-4 mb-6 rounded-r-lg shadow-sm">
+        <div class="flex items-start">
+          <div class="flex-shrink-0">
+            <i class="fa-solid fa-triangle-exclamation text-amber-500 text-xl mt-0.5"></i>
+          </div>
+          <div class="ml-3 flex-grow">
+            <h3 class="text-sm font-semibold text-amber-800">แจ้งเตือนสัญญาเช่าใกล้สิ้นสุด (เหลือน้อยกว่า 2 เดือน)</h3>
+            <div class="text-xs text-amber-700 mt-1" id="contract-alert-list">
+              <!-- รายชื่อห้องแจ้งเตือนจะมาอยู่ที่นี่ -->
+            </div>
+          </div>
+          <button onclick="closeContractAlert()" class="ml-auto text-amber-500 hover:text-amber-800">
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- TAB 1: DASHBOARD -->
+      <section id="tab-content-dashboard" class="tab-pane space-y-6">
+        <!-- สถิติการเงิน & ห้องพักหลัก -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <!-- การเงินประจำเดือน -->
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div class="space-y-1">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ประมาณการรายรับเดือนนี้</span>
+              <h3 class="text-2xl font-bold text-slate-800" id="dashboard-revenue">0 ฿</h3>
+              <p class="text-xs text-emerald-500"><i class="fa-solid fa-check-double mr-1"></i>คิดจากห้องที่จองและไม่ว่าง</p>
+            </div>
+            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <i class="fa-solid fa-wallet text-2xl"></i>
+            </div>
+          </div>
+
+          <!-- สถานะว่าง -->
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div class="space-y-1">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ห้องว่างพร้อมเช่า</span>
+              <h3 class="text-2xl font-bold text-emerald-600" id="dashboard-vacant">0 ห้อง</h3>
+              <p class="text-xs text-slate-500" id="dashboard-vacant-percent">0% จากทั้งหมด</p>
+            </div>
+            <div class="p-3 bg-emerald-50 text-emerald-600 rounded-xl">
+              <i class="fa-solid fa-house-circle-check text-2xl"></i>
+            </div>
+          </div>
+
+          <!-- สถานะไม่ว่าง/มีผู้เช่า -->
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div class="space-y-1">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ห้องไม่ว่าง (มีผู้เช่า)</span>
+              <h3 class="text-2xl font-bold text-rose-600" id="dashboard-occupied">0 ห้อง</h3>
+              <p class="text-xs text-slate-500" id="dashboard-occupied-percent">0% จากทั้งหมด</p>
+            </div>
+            <div class="p-3 bg-rose-50 text-rose-600 rounded-xl">
+              <i class="fa-solid fa-house-user text-2xl"></i>
+            </div>
+          </div>
+
+          <!-- สถานะชำรุด -->
+          <div class="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between">
+            <div class="space-y-1">
+              <span class="text-xs font-semibold text-slate-400 uppercase tracking-wider">ชำรุด/ปิดปรับปรุง</span>
+              <h3 class="text-2xl font-bold text-amber-600" id="dashboard-maintenance">0 ห้อง</h3>
+              <p class="text-xs text-slate-500" id="dashboard-maintenance-percent">0% จากทั้งหมด</p>
+            </div>
+            <div class="p-3 bg-amber-50 text-amber-600 rounded-xl">
+              <i class="fa-solid fa-screwdriver-wrench text-2xl"></i>
+            </div>
+          </div>
+        </div>
+
+        <!-- รายละเอียดสถานะเพิ่มเติม -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- กราฟวงกลมจำลองสถานะ -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 flex flex-col justify-between">
+            <div>
+              <h3 class="text-base font-bold text-slate-800 mb-4"><i class="fa-solid fa-chart-pie text-indigo-500 mr-2"></i>สัดส่วนสถานะห้องพัก</h3>
+              <div class="space-y-4">
+                <!-- แถบความคืบหน้าแบบซ้อน -->
+                <div class="h-4 w-full bg-slate-100 rounded-full overflow-hidden flex">
+                  <div id="bar-vacant" class="bg-emerald-500 h-full transition-all duration-500" style="width: 0%"></div>
+                  <div id="bar-occupied" class="bg-rose-500 h-full transition-all duration-500" style="width: 0%"></div>
+                  <div id="bar-reserved" class="bg-sky-500 h-full transition-all duration-500" style="width: 0%"></div>
+                  <div id="bar-maintenance" class="bg-amber-500 h-full transition-all duration-500" style="width: 0%"></div>
+                </div>
+                <div class="grid grid-cols-2 gap-4 text-xs font-medium">
+                  <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 bg-emerald-500 rounded-full block"></span>
+                    <span>ว่าง: <strong id="lbl-vacant">0</strong> ห้อง</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 bg-rose-500 rounded-full block"></span>
+                    <span>ไม่ว่าง: <strong id="lbl-occupied">0</strong> ห้อง</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 bg-sky-500 rounded-full block"></span>
+                    <span>จองแล้ว: <strong id="lbl-reserved">0</strong> ห้อง</span>
+                  </div>
+                  <div class="flex items-center gap-2">
+                    <span class="w-3 h-3 bg-amber-500 rounded-full block"></span>
+                    <span>ชำรุด: <strong id="lbl-maintenance">0</strong> ห้อง</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="mt-6 pt-4 border-t border-slate-100 text-xs text-slate-500 flex justify-between items-center">
+              <span>จำนวนห้องทั้งหมดปัจจุบัน: <strong id="lbl-total-rooms">20</strong> ห้อง</span>
+              <button onclick="switchTab('rooms')" class="text-indigo-600 font-semibold hover:underline">แก้ไขจำนวนห้อง <i class="fa-solid fa-angle-right"></i></button>
+            </div>
+          </div>
+
+          <!-- สรุปมิเตอร์ ค่าน้ำ/ค่าไฟ ประจำเดือน -->
+          <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 lg:col-span-2">
+            <h3 class="text-base font-bold text-slate-800 mb-4"><i class="fa-solid fa-bolt text-amber-500 mr-2"></i>อัตราค่าน้ำ/ค่าไฟ & การตั้งค่าค่าบริการ</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div class="p-4 bg-amber-50/50 border border-amber-100 rounded-xl space-y-2">
+                <span class="text-xs font-semibold text-amber-800 uppercase">ค่าไฟฟ้า (ต่อหน่วย)</span>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="setting-electric-rate" value="8" min="1" step="0.5" class="w-20 px-2 py-1 border border-slate-300 rounded text-center text-sm font-semibold" onchange="saveUtilityRates()">
+                  <span class="text-sm text-slate-600">บาท / หน่วย</span>
+                </div>
+                <p class="text-[11px] text-slate-400">อัตราค่าไฟฟ้าพื้นฐานของอพาร์ทเม้นท์</p>
+              </div>
+              <div class="p-4 bg-sky-50/50 border border-sky-100 rounded-xl space-y-2">
+                <span class="text-xs font-semibold text-sky-800 uppercase">ค่าน้ำประปา (ต่อหน่วย)</span>
+                <div class="flex items-center gap-2">
+                  <input type="number" id="setting-water-rate" value="18" min="1" step="0.5" class="w-20 px-2 py-1 border border-slate-300 rounded text-center text-sm font-semibold" onchange="saveUtilityRates()">
+                  <span class="text-sm text-slate-600">บาท / หน่วย</span>
+                </div>
+                <p class="text-[11px] text-slate-400">อัตราค่าน้ำประปาพื้นฐาน (หรือเหมาจ่าย)</p>
+              </div>
+            </div>
+            <div class="mt-4 p-3 bg-slate-50 border border-slate-100 rounded-xl flex justify-between items-center text-xs">
+              <span class="text-slate-500"><i class="fa-solid fa-circle-info mr-1 text-indigo-500"></i>เปลี่ยนค่าที่นี่จะบันทึกทันทีและใช้คำนวณในบิลทั้งหมด</span>
+              <span id="utility-save-status" class="text-emerald-600 hidden"><i class="fa-solid fa-check mr-1"></i>บันทึกสำเร็จ</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- รายการล็อกการแก้ไขล่าสุด (Audit Log) -->
+        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
+          <div class="flex justify-between items-center mb-4">
+            <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-history text-indigo-500 mr-2"></i>ประวัติการบันทึก & แก้ไขข้อมูลล่าสุด</h3>
+            <button onclick="clearAuditLog()" class="text-xs text-red-500 hover:underline">ล้างประวัติ</button>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="bg-slate-50 text-slate-400 text-xs uppercase font-semibold">
+                <tr>
+                  <th class="py-2.5 px-4 rounded-l-lg">เวลา</th>
+                  <th class="py-2.5 px-4">กิจกรรม</th>
+                  <th class="py-2.5 px-4">ผู้บันทึก</th>
+                  <th class="py-2.5 px-4 rounded-r-lg text-right">สถานะคลาวด์</th>
+                </tr>
+              </thead>
+              <tbody id="audit-log-table" class="divide-y divide-slate-100">
+                <!-- แถวประวัติการทำงานจะแสดงที่นี่ -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 2: ROOM GRID (ผังห้องพัก) -->
+      <section id="tab-content-rooms" class="tab-pane hidden space-y-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
+          <div>
+            <h3 class="text-base font-bold text-slate-800">จัดการผังห้องพักทั้งหมด</h3>
+            <p class="text-xs text-slate-500">สามารถเลือกปรับ เพิ่ม หรือลดจำนวนห้องพักได้ และกดเลือกห้องพักเพื่อจัดการข้อมูลเร่งด่วน</p>
+          </div>
+          <div class="flex items-center gap-3">
+            <button onclick="adjustRoomCount(-1)" class="px-3 py-1.5 bg-rose-50 text-rose-600 hover:bg-rose-100 border border-rose-200 rounded-lg text-sm font-semibold transition-all">
+              <i class="fa-solid fa-minus mr-1"></i> ลดห้องพัก (-1)
+            </button>
+            <span class="text-sm font-bold bg-slate-100 px-4 py-2 rounded-lg border border-slate-200" id="btn-room-count-display">20 ห้อง</span>
+            <button onclick="adjustRoomCount(1)" class="px-3 py-1.5 bg-emerald-50 text-emerald-600 hover:bg-emerald-100 border border-emerald-200 rounded-lg text-sm font-semibold transition-all">
+              <i class="fa-solid fa-plus mr-1"></i> เพิ่มห้องพัก (+1)
+            </button>
+          </div>
+        </div>
+
+        <!-- คำอธิบายสีสถานะ -->
+        <div class="flex flex-wrap gap-4 text-xs font-medium justify-center bg-white p-3 rounded-xl shadow-sm border border-slate-100">
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 h-4 bg-emerald-500 rounded border border-emerald-600 block"></span>
+            <span>ว่าง (พร้อมเช่า)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 h-4 bg-rose-500 rounded border border-rose-600 block"></span>
+            <span>ไม่ว่าง (มีผู้เช่า)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 h-4 bg-sky-500 rounded border border-sky-600 block"></span>
+            <span>จองแล้ว (วางมัดจำ)</span>
+          </div>
+          <div class="flex items-center gap-1.5">
+            <span class="w-4 h-4 bg-amber-500 rounded border border-amber-600 block"></span>
+            <span>ชำรุด (ปิดปรับปรุง)</span>
+          </div>
+        </div>
+
+        <!-- ตารางห้อง Grid -->
+        <div id="room-grid" class="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+          <!-- บล็อกห้องแต่ละห้องจะถูกแสดงโดย JavaScript -->
+        </div>
+      </section>
+
+      <!-- TAB 3: TENANT MANAGEMENT & METER (ผู้เช่า & ค่าน้ำค่าน้ำไฟ) -->
+      <section id="tab-content-tenants" class="tab-pane hidden space-y-6">
+        <div class="flex justify-between items-center">
+          <div>
+            <h3 class="text-lg font-bold text-slate-800">จัดการข้อมูลผู้เช่าและบันทึกเลขมิเตอร์</h3>
+            <p class="text-xs text-slate-500">อัปเดตข้อมูลผู้เข้าพัก และระบุค่าน้ำ/ค่าไฟเพื่อเตรียมออกใบแจ้งหนี้</p>
+          </div>
+        </div>
+
+        <!-- ตัวเลือกกรองห้องที่ต้องการระบุข้อมูล -->
+        <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex flex-wrap gap-2 items-center">
+          <span class="text-xs font-semibold text-slate-500">เลือกกรองห้อง:</span>
+          <button onclick="filterTenantRooms('all')" class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-lg" id="filter-tenant-all">ทั้งหมด</button>
+          <button onclick="filterTenantRooms('occupied')" class="px-3 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 text-xs font-semibold rounded-lg" id="filter-tenant-occupied">เฉพาะห้องไม่ว่าง</button>
+          <button onclick="filterTenantRooms('vacant')" class="px-3 py-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-lg" id="filter-tenant-vacant">เฉพาะห้องว่าง</button>
+        </div>
+
+        <!-- ตารางข้อมูลผู้เช่าทั้งหมด -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-100 overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm text-slate-600">
+              <thead class="bg-slate-50 text-slate-500 text-xs uppercase font-semibold">
+                <tr>
+                  <th class="py-3 px-4">เลขห้อง</th>
+                  <th class="py-3 px-4">สถานะ</th>
+                  <th class="py-3 px-4">ชื่อผู้เช่า</th>
+                  <th class="py-3 px-4">ค่าเช่าพื้นฐาน</th>
+                  <th class="py-3 px-4">มิเตอร์ไฟ (ล่าสุด)</th>
+                  <th class="py-3 px-4">มิเตอร์น้ำ (ล่าสุด)</th>
+                  <th class="py-3 px-4">หมดสัญญา</th>
+                  <th class="py-3 px-4 text-center">จัดการ</th>
+                </tr>
+              </thead>
+              <tbody id="tenant-table-body" class="divide-y divide-slate-100">
+                <!-- แถวจะถูกโหลดโดย JavaScript -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 4: BILLING & INVOICE -->
+      <section id="tab-content-billing" class="tab-pane hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <!-- ส่วนเลือกห้องเพื่อคำนวณค่าเช่า -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+            <h3 class="text-base font-bold text-slate-800 border-b border-slate-100 pb-2"><i class="fa-solid fa-calculator text-indigo-500 mr-2"></i>เลือกห้องและบันทึกค่าน้ำไฟ</h3>
+            
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">เลือกห้องพัก</label>
+                <select id="billing-room-select" class="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500" onchange="loadRoomToBilling()">
+                  <!-- โหลดรายการห้องผ่าน JS -->
+                </select>
+              </div>
+
+              <!-- รายละเอียดเดิม -->
+              <div class="p-3 bg-slate-50 rounded-lg space-y-2 text-xs">
+                <div class="flex justify-between">
+                  <span class="text-slate-400">ชื่อผู้เช่า:</span>
+                  <span class="font-semibold text-slate-700" id="bill-lbl-tenant">-</span>
+                </div>
+                <div class="flex justify-between">
+                  <span class="text-slate-400">ค่าเช่าหลัก:</span>
+                  <span class="font-semibold text-slate-700" id="bill-lbl-base">0 ฿</span>
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3">
+                <h4 class="text-xs font-bold text-indigo-700 mb-2">มิเตอร์ไฟฟ้า</h4>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[10px] text-slate-400">เลขครั้งก่อน</label>
+                    <input type="number" id="bill-elec-prev" class="w-full border border-slate-200 rounded p-1.5 text-xs bg-slate-100" readonly>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-indigo-600 font-bold">เลขครั้งนี้ (ระบุใหม่)</label>
+                    <input type="number" id="bill-elec-curr" class="w-full border border-indigo-300 rounded p-1.5 text-xs focus:ring-2 focus:ring-indigo-500" oninput="calculateBillInvoice()">
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3">
+                <h4 class="text-xs font-bold text-sky-700 mb-2">มิเตอร์น้ำประปา</h4>
+                <div class="grid grid-cols-2 gap-2">
+                  <div>
+                    <label class="block text-[10px] text-slate-400">เลขครั้งก่อน</label>
+                    <input type="number" id="bill-water-prev" class="w-full border border-slate-200 rounded p-1.5 text-xs bg-slate-100" readonly>
+                  </div>
+                  <div>
+                    <label class="block text-[10px] text-sky-600 font-bold">เลขครั้งนี้ (ระบุใหม่)</label>
+                    <input type="number" id="bill-water-curr" class="w-full border border-sky-300 rounded p-1.5 text-xs focus:ring-2 focus:ring-sky-500" oninput="calculateBillInvoice()">
+                  </div>
+                </div>
+              </div>
+
+              <div class="border-t border-slate-100 pt-3">
+                <label class="block text-xs font-semibold text-slate-500 mb-1">ค่าบริการเพิ่มเติมอื่นๆ (ถ้ามี เช่น ค่าจอดรถ/ขยะ)</label>
+                <div class="grid grid-cols-2 gap-2">
+                  <input type="text" id="bill-other-name" placeholder="ชื่อบริการ" class="w-full border border-slate-200 rounded p-1.5 text-xs">
+                  <input type="number" id="bill-other-price" placeholder="จำนวนเงิน" value="0" class="w-full border border-slate-200 rounded p-1.5 text-xs" oninput="calculateBillInvoice()">
+                </div>
+              </div>
+
+              <button onclick="saveBillingData()" class="w-full mt-4 bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-xs transition duration-200 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-floppy-disk"></i> บันทึกข้อมูล & ส่งออก Google Sheet
+              </button>
+            </div>
+          </div>
+
+          <!-- ตัวอย่างบิล (ใบแจ้งหนี้) -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
+            <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-file-invoice text-indigo-500 mr-2"></i>ตัวอย่างใบแจ้งหนี้ (Invoice Preview)</h3>
+              <button onclick="printInvoice()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition">
+                <i class="fa-solid fa-print"></i> พิมพ์ / เซฟ PDF
+              </button>
+            </div>
+
+            <!-- พื้นที่พิมพ์บิลจริง -->
+            <div id="printArea" class="bg-white border border-slate-200 p-6 rounded-lg text-slate-800 space-y-4 shadow-sm max-w-xl mx-auto">
+              <!-- ส่วนหัว -->
+              <div class="flex justify-between border-b-2 border-indigo-900 pb-4">
+                <div>
+                  <h2 class="text-lg font-bold text-indigo-900">ใบแจ้งหนี้ / ใบเสร็จรับเงิน</h2>
+                  <p class="text-[11px] text-slate-500">ระบบบริหารจัดการอพาร์ทเม้นท์อัจฉริยะ</p>
+                </div>
+                <div class="text-right text-xs">
+                  <p class="font-bold">ห้องพักหมายเลข: <span id="bill-print-room-id" class="text-indigo-600 text-sm font-black">-</span></p>
+                  <p>วันที่ออกบิล: <span id="bill-print-date">-</span></p>
+                  <p class="text-[10px] text-slate-400">ผู้ทำรายการ: <span id="bill-print-operator">-</span></p>
+                </div>
+              </div>
+
+              <!-- รายละเอียดผู้เช่า -->
+              <div class="grid grid-cols-2 gap-4 text-xs bg-slate-50 p-3 rounded-lg">
+                <div>
+                  <p class="text-slate-400 font-semibold">ชื่อผู้เช่า:</p>
+                  <p class="font-bold text-slate-700 text-sm" id="bill-print-tenant-name">-</p>
+                </div>
+                <div>
+                  <p class="text-slate-400 font-semibold">สถานะบิล:</p>
+                  <p class="font-bold text-amber-600" id="bill-print-status">รอชำระเงิน</p>
+                </div>
+              </div>
+
+              <!-- ตารางค่าบริการ -->
+              <table class="w-full text-xs text-left">
+                <thead>
+                  <tr class="border-b border-slate-300 font-bold text-slate-500">
+                    <th class="py-2">รายการบริการ</th>
+                    <th class="py-2 text-center">หน่วยเดิม/หน่วยใหม่</th>
+                    <th class="py-2 text-right">จำนวนหน่วย</th>
+                    <th class="py-2 text-right">ราคาต่อหน่วย</th>
+                    <th class="py-2 text-right">จำนวนเงิน</th>
+                  </tr>
+                </thead>
+                <tbody id="bill-print-items" class="divide-y divide-slate-100">
+                  <!-- แถวจะสร้างอัตโนมัติ -->
+                </tbody>
+                <tfoot>
+                  <tr class="border-t border-slate-300 font-bold text-slate-800">
+                    <td colspan="4" class="py-3 text-right text-sm">ยอดเงินรวมทั้งสิ้น (Total):</td>
+                    <td class="py-3 text-right text-base text-indigo-700" id="bill-print-total">0.00 ฿</td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <!-- หมายเหตุและลายมือชื่อ -->
+              <div class="pt-4 border-t border-slate-200 grid grid-cols-2 gap-4 text-[10px] text-slate-500">
+                <div>
+                  <p class="font-bold">คำแนะนำการชำระเงิน:</p>
+                  <p>1. กรุณาชำระเงินภายในวันที่กำหนดในสัญญา</p>
+                  <p>2. สามารถโอนเงินเข้าบัญชีของธนาคารอพาร์ทเม้นท์โดยตรง</p>
+                </div>
+                <div class="text-center pt-4">
+                  <p class="border-b border-dashed border-slate-400 mx-auto w-32 h-6"></p>
+                  <p class="mt-1">ผู้จัดการ / ผู้รับเงิน</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 5: MAINTENANCE & TROUBLESHOOTING (พื้นที่ส่วนกลาง) -->
+      <section id="tab-content-maintenance" class="tab-pane hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- แบบฟอร์มแจ้งปัญหาพื้นที่ส่วนกลาง -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+            <h3 class="text-base font-bold text-slate-800 pb-2 border-b border-slate-100"><i class="fa-solid fa-bullhorn text-indigo-500 mr-2"></i>รายงานปัญหาพื้นที่ส่วนกลาง</h3>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">บริเวณที่พบปัญหา</label>
+                <select id="maint-location" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+                  <option value="ทางเดิน/ทางหนีไฟ">ทางเดิน / ทางหนีไฟ</option>
+                  <option value="ลิฟต์โดยสาร">ลิฟต์โดยสาร</option>
+                  <option value="ที่จอดรถยนต์/มอเตอร์ไซค์">ที่จอดรถยนต์ / มอเตอร์ไซค์</option>
+                  <option value="ถังขยะส่วนกลาง">ถังขยะส่วนกลาง</option>
+                  <option value="ระบบไฟแสงสว่าง">ระบบไฟแสงสว่างส่วนกลาง</option>
+                  <option value="เครื่องปั๊มน้ำ/แทงค์น้ำ">เครื่องปั๊มน้ำ / แทงค์น้ำ</option>
+                  <option value="อื่นๆ">อื่นๆ (ระบุในรายละเอียด)</option>
+                </select>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">ความรุนแรงของปัญหา</label>
+                <div class="grid grid-cols-3 gap-2">
+                  <label class="border border-slate-200 rounded-lg p-2 text-center cursor-pointer hover:bg-slate-50 flex flex-col items-center gap-1">
+                    <input type="radio" name="maint-priority" value="ต่ำ" checked class="accent-indigo-600">
+                    <span class="text-[10px] font-bold text-emerald-600">ต่ำ (ทั่วไป)</span>
+                  </label>
+                  <label class="border border-slate-200 rounded-lg p-2 text-center cursor-pointer hover:bg-slate-50 flex flex-col items-center gap-1">
+                    <input type="radio" name="maint-priority" value="ปานกลาง" class="accent-indigo-600">
+                    <span class="text-[10px] font-bold text-amber-600">ปานกลาง</span>
+                  </label>
+                  <label class="border border-slate-200 rounded-lg p-2 text-center cursor-pointer hover:bg-slate-50 flex flex-col items-center gap-1">
+                    <input type="radio" name="maint-priority" value="สูง" class="accent-indigo-600">
+                    <span class="text-[10px] font-bold text-rose-600">สูง (เร่งด่วน)</span>
+                  </label>
+                </div>
+              </div>
+
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">รายละเอียดปัญหา</label>
+                <textarea id="maint-details" rows="3" placeholder="ระบุอาการชำรุด หรือปัญหาที่ต้องการให้แก้ไข..." class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500"></textarea>
+              </div>
+
+              <button onclick="submitMaintenanceReport()" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-semibold py-2 px-4 rounded-lg text-xs transition duration-200 flex items-center justify-center gap-1">
+                <i class="fa-solid fa-paper-plane"></i> บันทึกและแจ้งเตือน
+              </button>
+            </div>
+          </div>
+
+          <!-- ตารางแสดงปัญหาที่รอดำเนินการ -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
+            <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-clipboard-list text-indigo-500 mr-2"></i>รายการและสถิติปัญหาพื้นที่ส่วนกลาง</h3>
+            <div class="overflow-x-auto">
+              <table class="w-full text-left text-xs text-slate-600">
+                <thead class="bg-slate-50 text-slate-500 font-semibold uppercase">
+                  <tr>
+                    <th class="py-2.5 px-3">วัน-เวลา</th>
+                    <th class="py-2.5 px-3">พื้นที่</th>
+                    <th class="py-2.5 px-3">อาการชำรุด</th>
+                    <th class="py-2.5 px-3">ระดับ</th>
+                    <th class="py-2.5 px-3">สถานะ</th>
+                    <th class="py-2.5 px-3 text-right">ดำเนินการ</th>
+                  </tr>
+                </thead>
+                <tbody id="maintenance-table-body" class="divide-y divide-slate-100">
+                  <!-- โหลดผ่าน JS -->
+                </tbody>
+              </table>
+            </div>
+
+            <!-- คู่มือการแก้ไขปัญหาเบื้องต้น (Troubleshooting) -->
+            <div class="mt-6 pt-6 border-t border-slate-100">
+              <h4 class="text-sm font-bold text-indigo-900 mb-3"><i class="fa-solid fa-circle-question mr-1"></i>คู่มือการประเมินและการแก้ไขปัญหาเบื้องต้นสำหรับผู้ดูแล</h4>
+              <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                <div class="p-3 bg-indigo-50/50 border border-indigo-100 rounded-xl space-y-1.5">
+                  <p class="font-bold text-indigo-900"><i class="fa-solid fa-lightbulb text-amber-500 mr-1"></i>ไฟส่วนกลางดับ/ไม่ทำงาน</p>
+                  <p class="text-slate-600">1. ตรวจสอบตู้ควบคุมไฟ (MDB) ว่าเบรกเกอร์ย่อยดีดตัวลงหรือไม่</p>
+                  <p class="text-slate-600">2. หากมีระบบไทม์เมอร์ (Timer) ให้ตรวจสอบว่าตั้งเวลาตรงกับเวลาจริงหรือไม่</p>
+                </div>
+                <div class="p-3 bg-rose-50/50 border border-rose-100 rounded-xl space-y-1.5">
+                  <p class="font-bold text-rose-900"><i class="fa-solid fa-faucet-drip text-sky-500 mr-1"></i>น้ำประปาส่วนกลางไม่ไหล/ไหลอ่อน</p>
+                  <p class="text-slate-600">1. ตรวจเช็คสถานะการตัดจ่ายไฟของเครื่องปั๊มน้ำแรงดันสูง</p>
+                  <p class="text-slate-600">2. ตรวจสอบลูกลอยในถังพักน้ำส่วนกลางว่าเกิดปัญหาขัดตัวหรือไม่</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- TAB 6: SETTINGS & GOOGLE SHEET CONNECTION -->
+      <section id="tab-content-settings" class="tab-pane hidden space-y-6">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          <!-- เชื่อมต่อ Google Sheets -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm space-y-4 lg:col-span-1">
+            <h3 class="text-base font-bold text-slate-800 pb-2 border-b border-slate-100"><i class="fa-solid fa-gears text-indigo-500 mr-2"></i>ตั้งค่า Cloud Sync</h3>
+            
+            <div class="space-y-4">
+              <div>
+                <label class="block text-xs font-semibold text-slate-500 mb-1">Google Sheets Web App URL</label>
+                <input type="text" id="setting-sheet-url" placeholder="https://script.google.com/macros/s/.../exec" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+                <p class="text-[10px] text-slate-400 mt-1">วาง URL ของ Google Apps Script ที่ได้จากการเผยแพร่ Web App</p>
+              </div>
+
+              <div class="flex items-center gap-2">
+                <button onclick="saveSheetSettings()" class="flex-grow bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 px-4 rounded-lg text-xs transition duration-200">
+                  <i class="fa-solid fa-circle-check mr-1"></i> เชื่อมต่อและทดสอบ
+                </button>
+                <button onclick="testSyncConnection()" id="btn-test-sync" class="bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-2 rounded-lg text-xs font-semibold transition">
+                  <i class="fa-solid fa-arrows-rotate"></i>
+                </button>
+              </div>
+              
+              <div id="sync-test-result" class="hidden p-3 rounded-lg text-xs font-medium"></div>
+            </div>
+          </div>
+
+          <!-- คู่มือเชื่อมต่อ Google Sheet -->
+          <div class="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
+            <h3 class="text-base font-bold text-indigo-900 border-b border-slate-100 pb-2"><i class="fa-brands fa-google-drive mr-2 text-emerald-600"></i>ขั้นตอนการเชื่อมโยงระบบเข้ากับ Google Sheets</h3>
+            
+            <div class="space-y-3 text-xs text-slate-600">
+              <p class="font-bold text-slate-800">โปรดปฏิบัติตามขั้นตอนด้านล่างนี้เพื่อเชื่อมโยงฐานข้อมูลการเช่ากับคลาวด์ของคุณ:</p>
+              <ol class="list-decimal pl-4 space-y-2">
+                <li>ไปที่ <a href="https://sheets.google.com" target="_blank" class="text-indigo-600 font-semibold underline">Google Sheets</a> และสร้างสเปรดชีตใหม่</li>
+                <li>ตั้งชื่อแผ่นงาน (Sheet) แผ่นแรกว่า <code class="bg-slate-100 px-1 py-0.5 rounded text-indigo-600 font-bold">Data</code></li>
+                <li>ไปที่เมนู <strong class="text-slate-800">ส่วนขยาย (Extensions)</strong> &gt; <strong class="text-slate-800">Apps Script</strong></li>
+                <li>คัดลอกรหัสโค้ด Apps Script (ในกล่องข้อมูลด้านล่างนี้) ไปใส่ในแถบตัวแก้ไขโค้ด</li>
+                <li>คลิกปุ่ม <strong class="text-slate-800">การทำให้ใช้งานได้ (Deploy)</strong> ด้านบนขวา &gt; เลือก <strong class="text-slate-800">การทำให้ใช้งานได้ใหม่ (New deployment)</strong></li>
+                <li>เลือกประเภทเป็น <strong class="text-slate-800">เว็บแอป (Web app)</strong> ปรับค่าผู้มีสิทธิ์เข้าถึงเป็น <strong class="text-indigo-600">ทุกคน (Anyone)</strong> และกด Deploy</li>
+                <li>คัดลอก URL ของเว็บแอปที่ได้ นำมาวางลงในช่อง "Web App URL" ในแผงตั้งค่าด้านซ้าย แล้วกดเชื่อมต่อและทดสอบ</li>
+              </ol>
+
+              <!-- กล่องโค้ด Apps Script -->
+              <div class="mt-4">
+                <span class="block text-xs font-bold text-slate-700 mb-1">คัดลอกรหัส Apps Script ด้านล่างนี้:</span>
+                <textarea readonly class="w-full h-32 bg-slate-800 text-slate-200 p-2.5 rounded-lg text-[10px] font-mono select-all scrollbar-thin" onclick="this.select()">
+function doPost(e) {
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Data");
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet("Data");
+    sheet.appendRow(["เวลาบันทึก", "เลขห้อง", "ผู้เช่า", "ประเภทงาน", "รายละเอียดค่าน้ำไฟ", "ผู้ทำรายการ", "ยอดเงินรวม"]);
+  }
+  
+  try {
+    var data = JSON.parse(e.postData.contents);
+    sheet.appendRow([
+      new Date(),
+      data.roomId || "",
+      data.tenantName || "",
+      data.actionType || "",
+      data.details || "",
+      data.operator || "",
+      data.totalAmount || 0
+    ]);
+    return ContentService.createTextOutput(JSON.stringify({"status": "success", "message": "บันทึกข้อมูลเรียบร้อยแล้ว"}))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
+    return ContentService.createTextOutput(JSON.stringify({"status": "error", "message": error.toString()}))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function doGet() {
+  return ContentService.createTextOutput("Smart Apartment Web App API is running!")
+    .setMimeType(ContentService.MimeType.TEXT);
+}</textarea>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-indigo-950 text-indigo-200 py-6 border-t border-indigo-900 mt-12 text-center text-xs">
+      <div class="max-w-7xl mx-auto px-4">
+        <p>© 2026 Smart Apartment OS. พัฒนาขึ้นโดยใช้ HTML5, Tailwind CSS และ Google App Sheet Connection</p>
+        <p class="mt-1 text-indigo-400">รองรับสเกลอพาร์ทเม้นท์ตั้งแต่ขนาดเล็กจนถึงขนาดใหญ่</p>
+      </div>
+    </footer>
+  </div>
+
+  <!-- MODAL: รายละเอียดและแก้ไขห้องพัก -->
+  <div id="room-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto space-y-4 p-6">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-800">รายละเอียดห้องพักหมายเลข: <span id="modal-room-id" class="text-indigo-600 font-extrabold text-lg">-</span></h3>
+        <button onclick="closeRoomModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+
+      <div class="space-y-4">
+        <!-- ฟอร์มแก้ไขรายละเอียดห้อง -->
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">สถานะห้องพัก</label>
+            <select id="modal-room-status" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500" onchange="toggleModalFields()">
+              <option value="ว่าง">ว่าง (พร้อมเช่า)</option>
+              <option value="ไม่ว่าง">ไม่ว่าง (มีผู้เช่า)</option>
+              <option value="จองแล้ว">จองแล้ว (วางมัดจำ)</option>
+              <option value="ชำรุด">ชำรุด (ปิดปรับปรุง)</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-500 mb-1">ค่าเช่าหลัก (บาท/เดือน)</label>
+            <input type="number" id="modal-room-rent" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+          </div>
+        </div>
+
+        <!-- ฟิลด์เฉพาะเมื่อมีผู้เช่า -->
+        <div id="modal-tenant-fields" class="space-y-3 p-4 bg-slate-50 rounded-xl border border-slate-100">
+          <span class="text-xs font-bold text-indigo-900 uppercase tracking-wider block border-b border-indigo-100 pb-1">รายละเอียดผู้เช่าสัญญาเช่า</span>
+          
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-0.5">ชื่อ-นามสกุล ผู้เช่า</label>
+            <input type="text" id="modal-tenant-name" placeholder="ระบุชื่อผู้เช่า" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+          </div>
+          
+          <div>
+            <label class="block text-[11px] font-semibold text-slate-500 mb-0.5">เบอร์โทรศัพท์ติดต่อ</label>
+            <input type="text" id="modal-tenant-phone" placeholder="ระบุเบอร์โทรศัพท์" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+          </div>
+
+          <div class="grid grid-cols-2 gap-2">
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 mb-0.5">วันเริ่มทำสัญญา</label>
+              <input type="date" id="modal-contract-start" class="w-full border border-slate-200 rounded-lg p-2 text-[11px] focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-[11px] font-semibold text-slate-500 mb-0.5">วันสิ้นสุดสัญญา</label>
+              <input type="date" id="modal-contract-end" class="w-full border border-slate-200 rounded-lg p-2 text-[11px] focus:ring-2 focus:ring-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <!-- บันทึกมิเตอร์พื้นฐาน (มีประโยชน์ในการจดครั้งถัดไป) -->
+        <div class="p-4 bg-amber-50/40 rounded-xl border border-amber-100/50 space-y-3">
+          <span class="text-xs font-bold text-amber-800 uppercase tracking-wider block border-b border-amber-100 pb-1">มิเตอร์ไฟฟ้า & ประปา ปัจจุบัน</span>
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5">เลขมิเตอร์ไฟฟ้าล่าสุด</label>
+              <input type="number" id="modal-electric-meter" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+            </div>
+            <div>
+              <label class="block text-[11px] text-slate-500 mb-0.5">เลขมิเตอร์น้ำประปาล่าสุด</label>
+              <input type="number" id="modal-water-meter" class="w-full border border-slate-200 rounded-lg p-2 text-xs focus:ring-2 focus:ring-indigo-500">
+            </div>
+          </div>
+        </div>
+
+        <button onclick="saveRoomDetails()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 rounded-xl text-xs transition duration-200">
+          <i class="fa-solid fa-cloud-arrow-up mr-1"></i> บันทึกข้อมูลและประวัติ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: เปลี่ยนชื่อผู้บันทึก (Operator) -->
+  <div id="user-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-white rounded-2xl shadow-xl max-w-sm w-full p-6 space-y-4">
+      <div class="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h3 class="text-base font-bold text-slate-800"><i class="fa-solid fa-user-pen text-indigo-500 mr-2"></i>ระบุชื่อผู้บันทึกข้อมูล</h3>
+        <button onclick="closeUserModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+      </div>
+      <div class="space-y-3">
+        <p class="text-xs text-slate-500">ชื่อผู้บันทึกจะถูกแนบไปกับประวัติการแก้ไขทุกรายการและการซิงก์ข้อมูลลง Google Sheets</p>
+        <input type="text" id="modal-operator-name" placeholder="ระบุชื่อของคุณ (เช่น สมศักดิ์, แอดมินวิไล)" class="w-full border border-slate-200 rounded-lg p-2 text-sm focus:ring-2 focus:ring-indigo-500 font-medium">
+        <button onclick="saveOperatorName()" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2 rounded-lg text-xs transition">
+          บันทึกชื่อผู้ใช้
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Logics -->
+  <script>
+    // ข้อมูลเริ่มต้นสำหรับจำลองระบบ (In-memory Storage)
+    let roomsData = [];
+    let activeTab = 'dashboard';
+    let operatorName = 'แอดมินหลัก';
+    let googleSheetUrl = '';
+    let electricRate = 8;
+    let waterRate = 18;
+    let filterTenantType = 'all';
+
+    // รายการซ่อมแซมพื้นที่ส่วนกลางเริ่มต้น
+    let maintenanceData = [
+      { id: 1, datetime: "15/07/2026 09:00", location: "ทางเดิน/ทางหนีไฟ", detail: "หลอดไฟทางเดินชั้น 2 ขาด", priority: "ปานกลาง", status: "กำลังดำเนินการ" },
+      { id: 2, datetime: "14/07/2026 14:30", location: "ที่จอดรถยนต์/มอเตอร์ไซค์", detail: "ขยะเต็มถังหลักส่วนกลาง", priority: "ต่ำ", status: "เสร็จสิ้น" }
+    ];
+
+    // รายการล็อกความปลอดภัยของแอป
+    let auditLogs = [
+      { timestamp: "15/07/2026 11:30", action: "เปิดระบบและเตรียมการทำงาน", operator: "ระบบอัตโนมัติ" }
+    ];
+
+    // โหลดข้อมูลเมื่อเปิดใช้งานหน้าจอครั้งแรก
+    window.onload = function() {
+      loadSettingsFromLocal();
+      initializeRooms();
+      renderDashboard();
+      renderRoomsGrid();
+      renderTenantTable();
+      renderMaintenanceTable();
+      renderAuditLog();
+      checkContractAlerts();
+      populateBillingSelect();
+    };
+
+    // การสร้างห้องเบื้องต้น (20 ห้องพักเริ่มต้น)
+    function initializeRooms() {
+      const savedRooms = localStorage.getItem('apartment_rooms');
+      if (savedRooms) {
+        roomsData = JSON.parse(savedRooms);
+      } else {
+        roomsData = [];
+        for (let i = 1; i <= 20; i++) {
+          const floor = Math.floor((i - 1) / 5) + 1;
+          const roomNum = floor * 100 + ((i - 1) % 5 + 1);
+          roomsData.push({
+            id: roomNum.toString(),
+            status: i % 4 === 0 ? "ไม่ว่าง" : (i % 6 === 0 ? "จองแล้ว" : (i % 9 === 0 ? "ชำรุด" : "ว่าง")),
+            rent: 3500 + (floor * 200),
+            tenantName: i % 4 === 0 ? "คุณ สมควร ดีใจ" : (i % 6 === 0 ? "คุณ นารี สดใส" : ""),
+            tenantPhone: i % 4 === 0 ? "081-234-5678" : (i % 6 === 0 ? "089-987-6543" : ""),
+            contractStart: i % 4 === 0 ? "2026-01-01" : "",
+            contractEnd: i % 4 === 0 ? (i === 4 ? "2026-08-15" : "2027-01-01") : "", // ให้ห้อง 104 ใกล้หมดอายุสัญญาเพื่อทดสอบ
+            electricMeter: i % 4 === 0 ? 120 : 0,
+            waterMeter: i % 4 === 0 ? 45 : 0
+          });
         }
-        body {
-          background-color: white !important;
+        saveRoomsToLocal();
+      }
+      document.getElementById('tab-room-count').innerText = roomsData.length;
+    }
+
+    // เซฟข้อมูลห้องพักลงหน่วยความจำ
+    function saveRoomsToLocal() {
+      localStorage.setItem('apartment_rooms', JSON.stringify(roomsData));
+    }
+
+    // โหลดการตั้งค่าจาก LocalStorage
+    function loadSettingsFromLocal() {
+      const savedUrl = localStorage.getItem('setting_sheet_url');
+      if (savedUrl) {
+        googleSheetUrl = savedUrl;
+        document.getElementById('setting-sheet-url').value = googleSheetUrl;
+        updateSheetSyncStatus();
+      }
+
+      const savedElectric = localStorage.getItem('setting_electric_rate');
+      if (savedElectric) {
+        electricRate = parseFloat(savedElectric);
+        document.getElementById('setting-electric-rate').value = electricRate;
+      }
+
+      const savedWater = localStorage.getItem('setting_water_rate');
+      if (savedWater) {
+        waterRate = parseFloat(savedWater);
+        document.getElementById('setting-water-rate').value = waterRate;
+      }
+
+      const savedOperator = localStorage.getItem('operator_name');
+      if (savedOperator) {
+        operatorName = savedOperator;
+        document.getElementById('current-user-display').innerText = `ผู้บันทึก: ${operatorName}`;
+      }
+    }
+
+    // จัดการสลับแท็บเมนู
+    function switchTab(tabId) {
+      activeTab = tabId;
+      document.querySelectorAll('.tab-pane').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`tab-content-${tabId}`).classList.remove('hidden');
+
+      document.querySelectorAll('.nav-tab').forEach(btn => {
+        btn.className = "nav-tab px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 text-slate-600 hover:bg-slate-100";
+      });
+
+      const activeBtn = document.getElementById(`btn-${tabId}`);
+      if (activeBtn) {
+        activeBtn.className = "nav-tab px-4 py-2 rounded-lg font-medium text-sm transition-all duration-200 flex items-center gap-2 bg-indigo-50 text-indigo-700";
+      }
+
+      // รีเฟรชข้อมูลในแท็บนั้นๆ
+      if (tabId === 'dashboard') {
+        renderDashboard();
+      } else if (tabId === 'rooms') {
+        renderRoomsGrid();
+      } else if (tabId === 'tenants') {
+        renderTenantTable();
+      } else if (tabId === 'billing') {
+        populateBillingSelect();
+        loadRoomToBilling();
+      } else if (tabId === 'maintenance') {
+        renderMaintenanceTable();
+      }
+    }
+
+    // เรนเดอร์หน้า Dashboard สรุปข้อมูล
+    function renderDashboard() {
+      const total = roomsData.length;
+      const vacant = roomsData.filter(r => r.status === 'ว่าง').length;
+      const occupied = roomsData.filter(r => r.status === 'ไม่ว่าง').length;
+      const reserved = roomsData.filter(r => r.status === 'จองแล้ว').length;
+      const maintenance = roomsData.filter(r => r.status === 'ชำรุด').length;
+
+      // คาดการณ์รายรับ (ห้องไม่ว่าง + จองแล้ว คาดว่าได้ค่าเช่า)
+      let totalRevenue = 0;
+      roomsData.forEach(r => {
+        if (r.status === 'ไม่ว่าง' || r.status === 'จองแล้ว') {
+          totalRevenue += parseFloat(r.rent || 0);
         }
-        #invoice-print-area {
-          border: none !important;
-          box-shadow: none !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          width: 100% !important;
-          max-width: 100% !important;
+      });
+
+      // อัปเดต HTML
+      document.getElementById('dashboard-revenue').innerText = `${totalRevenue.toLocaleString()} ฿`;
+      document.getElementById('dashboard-vacant').innerText = `${vacant} ห้อง`;
+      document.getElementById('dashboard-occupied').innerText = `${occupied} ห้อง`;
+      document.getElementById('dashboard-maintenance').innerText = `${maintenance} ห้อง`;
+
+      document.getElementById('dashboard-vacant-percent').innerText = `${((vacant/total)*100).toFixed(0)}% จากทั้งหมด`;
+      document.getElementById('dashboard-occupied-percent').innerText = `${((occupied/total)*100).toFixed(0)}% จากทั้งหมด`;
+      document.getElementById('dashboard-maintenance-percent').innerText = `${((maintenance/total)*100).toFixed(0)}% จากทั้งหมด`;
+
+      document.getElementById('lbl-vacant').innerText = vacant;
+      document.getElementById('lbl-occupied').innerText = occupied;
+      document.getElementById('lbl-reserved').innerText = reserved;
+      document.getElementById('lbl-maintenance').innerText = maintenance;
+      document.getElementById('lbl-total-rooms').innerText = total;
+
+      // ปรับขนาดของ Progress Bar สรุป
+      document.getElementById('bar-vacant').style.width = `${(vacant/total)*100}%`;
+      document.getElementById('bar-occupied').style.width = `${(occupied/total)*100}%`;
+      document.getElementById('bar-reserved').style.width = `${(reserved/total)*100}%`;
+      document.getElementById('bar-maintenance').style.width = `${(maintenance/total)*100}%`;
+    }
+
+    // ปรับเปลี่ยนค่าน้ำ/ค่าไฟฟ้าและจัดเก็บ
+    function saveUtilityRates() {
+      electricRate = parseFloat(document.getElementById('setting-electric-rate').value) || 8;
+      waterRate = parseFloat(document.getElementById('setting-water-rate').value) || 18;
+      localStorage.setItem('setting_electric_rate', electricRate);
+      localStorage.setItem('setting_water_rate', waterRate);
+
+      const statusEl = document.getElementById('utility-save-status');
+      statusEl.classList.remove('hidden');
+      setTimeout(() => statusEl.classList.add('hidden'), 2000);
+      
+      addAuditLog(`แก้ไขอัตราบริการ (ไฟ: ${electricRate}฿, น้ำ: ${waterRate}฿)`);
+    }
+
+    // ปรับเปลี่ยนจำนวนห้อง (เพิ่ม/ลด ห้องพัก)
+    function adjustRoomCount(delta) {
+      if (delta === 1) {
+        // เพิ่ม 1 ห้อง
+        const lastRoom = roomsData[roomsData.length - 1];
+        let newId = "101";
+        if (lastRoom) {
+          const lastNum = parseInt(lastRoom.id);
+          const lastFloor = Math.floor(lastNum / 100);
+          const lastIndex = lastNum % 100;
+          if (lastIndex >= 5) {
+            newId = ((lastFloor + 1) * 100 + 1).toString();
+          } else {
+            newId = (lastNum + 1).toString();
+          }
+        }
+        roomsData.push({
+          id: newId,
+          status: "ว่าง",
+          rent: 3500,
+          tenantName: "",
+          tenantPhone: "",
+          contractStart: "",
+          contractEnd: "",
+          electricMeter: 0,
+          waterMeter: 0
+        });
+        addAuditLog(`เพิ่มห้องพักหมายเลข ${newId}`);
+      } else if (delta === -1 && roomsData.length > 1) {
+        // ลบห้องพักห้องสุดท้าย
+        const popped = roomsData.pop();
+        addAuditLog(`ลบห้องพักหมายเลข ${popped.id}`);
+      }
+      saveRoomsToLocal();
+      initializeRooms();
+      renderRoomsGrid();
+      renderDashboard();
+    }
+
+    // เรนเดอร์ตารางห้องพัก Grid
+    function renderRoomsGrid() {
+      const grid = document.getElementById('room-grid');
+      grid.innerHTML = '';
+      
+      roomsData.forEach(room => {
+        let colorClass = "";
+        let iconHtml = "";
+
+        if (room.status === 'ว่าง') {
+          colorClass = "bg-emerald-50 border-emerald-200 hover:bg-emerald-100/50 text-emerald-800";
+          iconHtml = `<i class="fa-solid fa-house-circle-check text-xl text-emerald-500"></i>`;
+        } else if (room.status === 'ไม่ว่าง') {
+          colorClass = "bg-rose-50 border-rose-200 hover:bg-rose-100/50 text-rose-800";
+          iconHtml = `<i class="fa-solid fa-house-user text-xl text-rose-500"></i>`;
+        } else if (room.status === 'จองแล้ว') {
+          colorClass = "bg-sky-50 border-sky-200 hover:bg-sky-100/50 text-sky-800";
+          iconHtml = `<i class="fa-solid fa-handshake text-xl text-sky-500"></i>`;
+        } else if (room.status === 'ชำรุด') {
+          colorClass = "bg-amber-50 border-amber-200 hover:bg-amber-100/50 text-amber-800";
+          iconHtml = `<i class="fa-solid fa-screwdriver-wrench text-xl text-amber-500"></i>`;
+        }
+
+        const roomEl = document.createElement('div');
+        roomEl.className = `p-4 rounded-2xl border cursor-pointer transition-all duration-150 flex flex-col justify-between h-32 shadow-sm ${colorClass}`;
+        roomEl.onclick = () => openRoomModal(room.id);
+        
+        roomEl.innerHTML = `
+          <div class="flex justify-between items-start">
+            <span class="text-sm font-semibold">ห้อง ${room.id}</span>
+            ${iconHtml}
+          </div>
+          <div class="space-y-1 mt-2">
+            <p class="text-[10px] text-slate-400 font-bold uppercase">${room.status}</p>
+            <p class="text-xs font-bold truncate">${room.tenantName || 'ไม่มีข้อมูลผู้เช่า'}</p>
+            <p class="text-[10px] text-slate-500 font-semibold">${room.rent.toLocaleString()} บาท/เดือน</p>
+          </div>
+        `;
+        grid.appendChild(roomEl);
+      });
+      document.getElementById('btn-room-count-display').innerText = `${roomsData.length} ห้อง`;
+    }
+
+    // จัดการเปิด/ปิดและโหลดข้อมูล Modal ห้องพัก
+    let currentModalRoomId = null;
+    function openRoomModal(roomId) {
+      currentModalRoomId = roomId;
+      const room = roomsData.find(r => r.id === roomId);
+      if (!room) return;
+
+      document.getElementById('modal-room-id').innerText = room.id;
+      document.getElementById('modal-room-status').value = room.status;
+      document.getElementById('modal-room-rent').value = room.rent;
+      document.getElementById('modal-tenant-name').value = room.tenantName || '';
+      document.getElementById('modal-tenant-phone').value = room.tenantPhone || '';
+      document.getElementById('modal-contract-start').value = room.contractStart || '';
+      document.getElementById('modal-contract-end').value = room.contractEnd || '';
+      document.getElementById('modal-electric-meter').value = room.electricMeter || 0;
+      document.getElementById('modal-water-meter').value = room.waterMeter || 0;
+
+      toggleModalFields();
+      document.getElementById('room-modal').classList.remove('hidden');
+    }
+
+    function closeRoomModal() {
+      document.getElementById('room-modal').classList.add('hidden');
+      currentModalRoomId = null;
+    }
+
+    // เปิดปิดแถบผู้เช่าตามสถานะใน Modal
+    function toggleModalFields() {
+      const status = document.getElementById('modal-room-status').value;
+      const tenantFields = document.getElementById('modal-tenant-fields');
+      if (status === 'ไม่ว่าง' || status === 'จองแล้ว') {
+        tenantFields.classList.remove('hidden');
+      } else {
+        tenantFields.classList.add('hidden');
+      }
+    }
+
+    // บันทึกการแก้ไขห้องลง Local
+    function saveRoomDetails() {
+      if (!currentModalRoomId) return;
+      const roomIndex = roomsData.findIndex(r => r.id === currentModalRoomId);
+      if (roomIndex === -1) return;
+
+      const oldStatus = roomsData[roomIndex].status;
+      const oldRent = roomsData[roomIndex].rent;
+      const newStatus = document.getElementById('modal-room-status').value;
+      const newRent = parseFloat(document.getElementById('modal-room-rent').value) || 0;
+
+      // อัปเดตข้อมูลห้องพัก
+      roomsData[roomIndex].status = newStatus;
+      roomsData[roomIndex].rent = newRent;
+      roomsData[roomIndex].tenantName = document.getElementById('modal-tenant-name').value;
+      roomsData[roomIndex].tenantPhone = document.getElementById('modal-tenant-phone').value;
+      roomsData[roomIndex].contractStart = document.getElementById('modal-contract-start').value;
+      roomsData[roomIndex].contractEnd = document.getElementById('modal-contract-end').value;
+      
+      const newElec = parseFloat(document.getElementById('modal-electric-meter').value) || 0;
+      const newWater = parseFloat(document.getElementById('modal-water-meter').value) || 0;
+      
+      roomsData[roomIndex].electricMeter = newElec;
+      roomsData[roomIndex].waterMeter = newWater;
+
+      saveRoomsToLocal();
+      closeRoomModal();
+      
+      // สร้าง Log
+      addAuditLog(`แก้ไขรายละเอียดห้อง ${currentModalRoomId} (สถานะ: ${newStatus}, มิเตอร์ไฟ: ${newElec}, มิเตอร์น้ำ: ${newWater})`);
+      
+      // อัปเดต UI ที่เกี่ยวข้อง
+      renderRoomsGrid();
+      renderDashboard();
+      checkContractAlerts();
+    }
+
+    // คัดกรองห้องพักในแท็บผู้เช่า
+    function filterTenantRooms(type) {
+      filterTenantType = type;
+      renderTenantTable();
+    }
+
+    // เรนเดอร์ตารางผู้เช่า
+    function renderTenantTable() {
+      const tbody = document.getElementById('tenant-table-body');
+      tbody.innerHTML = '';
+
+      let filtered = roomsData;
+      if (filterTenantType === 'occupied') {
+        filtered = roomsData.filter(r => r.status === 'ไม่ว่าง' || r.status === 'จองแล้ว');
+      } else if (filterTenantType === 'vacant') {
+        filtered = roomsData.filter(r => r.status === 'ว่าง' || r.status === 'ชำรุด');
+      }
+
+      // อัปเดตสไตล์ของปุ่มกรอง
+      document.getElementById('filter-tenant-all').className = `px-3 py-1 text-xs font-semibold rounded-lg ${filterTenantType === 'all' ? 'bg-indigo-600 text-white' : 'bg-slate-100 hover:bg-slate-200 text-slate-700'}`;
+      document.getElementById('filter-tenant-occupied').className = `px-3 py-1 text-xs font-semibold rounded-lg ${filterTenantType === 'occupied' ? 'bg-indigo-600 text-white' : 'bg-rose-50 hover:bg-rose-100 text-rose-700'}`;
+      document.getElementById('filter-tenant-vacant').className = `px-3 py-1 text-xs font-semibold rounded-lg ${filterTenantType === 'vacant' ? 'bg-indigo-600 text-white' : 'bg-emerald-50 hover:bg-emerald-100 text-emerald-700'}`;
+
+      filtered.forEach(room => {
+        let statusBadge = "";
+        if (room.status === 'ว่าง') statusBadge = '<span class="bg-emerald-100 text-emerald-800 text-[10px] px-2 py-0.5 rounded-full font-bold">ว่าง</span>';
+        else if (room.status === 'ไม่ว่าง') statusBadge = '<span class="bg-rose-100 text-rose-800 text-[10px] px-2 py-0.5 rounded-full font-bold">มีผู้เช่า</span>';
+        else if (room.status === 'จองแล้ว') statusBadge = '<span class="bg-sky-100 text-sky-800 text-[10px] px-2 py-0.5 rounded-full font-bold">จองแล้ว</span>';
+        else statusBadge = '<span class="bg-amber-100 text-amber-800 text-[10px] px-2 py-0.5 rounded-full font-bold">ชำรุด</span>';
+
+        const row = document.createElement('tr');
+        row.className = "hover:bg-slate-50/50 text-xs";
+        row.innerHTML = `
+          <td class="py-3 px-4 font-bold text-indigo-900">ห้อง ${room.id}</td>
+          <td class="py-3 px-4">${statusBadge}</td>
+          <td class="py-3 px-4 font-medium">${room.tenantName || '-'}</td>
+          <td class="py-3 px-4 font-bold">${room.rent.toLocaleString()} ฿</td>
+          <td class="py-3 px-4">
+            <input type="number" value="${room.electricMeter || 0}" class="w-16 border border-slate-200 rounded p-1 text-center" onchange="updateMeterDirectly('${room.id}', 'elec', this.value)">
+          </td>
+          <td class="py-3 px-4">
+            <input type="number" value="${room.waterMeter || 0}" class="w-16 border border-slate-200 rounded p-1 text-center" onchange="updateMeterDirectly('${room.id}', 'water', this.value)">
+          </td>
+          <td class="py-3 px-4">${room.contractEnd ? formatDate(room.contractEnd) : '-'}</td>
+          <td class="py-3 px-4 text-center">
+            <button onclick="openRoomModal('${room.id}')" class="text-indigo-600 hover:text-indigo-900 font-semibold text-xs"><i class="fa-regular fa-pen-to-square"></i> แก้ไข</button>
+          </td>
+        `;
+        tbody.appendChild(row);
+      });
+    }
+
+    // อัปเดตมิเตอร์โดยตรงจากตาราง
+    function updateMeterDirectly(roomId, type, val) {
+      const roomIndex = roomsData.findIndex(r => r.id === roomId);
+      if (roomIndex === -1) return;
+
+      const numVal = parseFloat(val) || 0;
+      if (type === 'elec') {
+        roomsData[roomIndex].electricMeter = numVal;
+      } else {
+        roomsData[roomIndex].waterMeter = numVal;
+      }
+      saveRoomsToLocal();
+      addAuditLog(`แก้ไขมิเตอร์ห้อง ${roomId} (${type === 'elec' ? 'ไฟฟ้า' : 'น้ำประปา'}): ${numVal}`);
+    }
+
+    // โหลดรายชื่อห้องเช่าเพื่อเตรียมคำนวณบิล
+    function populateBillingSelect() {
+      const select = document.getElementById('billing-room-select');
+      select.innerHTML = '';
+      
+      const occupiedRooms = roomsData.filter(r => r.status === 'ไม่ว่าง' || r.status === 'จองแล้ว');
+      if (occupiedRooms.length === 0) {
+        select.innerHTML = '<option value="">-- ไม่มีห้องที่มีผู้เช่า/จอง --</option>';
+        return;
+      }
+
+      occupiedRooms.forEach(r => {
+        const opt = document.createElement('option');
+        opt.value = r.id;
+        opt.innerText = `ห้อง ${r.id} (${r.tenantName})`;
+        select.appendChild(opt);
+      });
+    }
+
+    // โหลดรายละเอียดห้องไปยังตัวคำนวณเงินบิล
+    function loadRoomToBilling() {
+      const roomId = document.getElementById('billing-room-select').value;
+      if (!roomId) {
+        clearBillingForm();
+        return;
+      }
+
+      const room = roomsData.find(r => r.id === roomId);
+      if (!room) return;
+
+      document.getElementById('bill-lbl-tenant').innerText = room.tenantName;
+      document.getElementById('bill-lbl-base').innerText = `${room.rent.toLocaleString()} ฿`;
+      
+      // ไฟฟ้า
+      document.getElementById('bill-elec-prev').value = room.electricMeter || 0;
+      document.getElementById('bill-elec-curr').value = room.electricMeter || 0;
+      
+      // น้ำประปา
+      document.getElementById('bill-water-prev').value = room.waterMeter || 0;
+      document.getElementById('bill-water-curr').value = room.waterMeter || 0;
+
+      calculateBillInvoice();
+    }
+
+    // เคลียร์ฟอร์มใบบิลเมื่อไม่มีห้องเลือก
+    function clearBillingForm() {
+      document.getElementById('bill-lbl-tenant').innerText = '-';
+      document.getElementById('bill-lbl-base').innerText = '0 ฿';
+      document.getElementById('bill-elec-prev').value = 0;
+      document.getElementById('bill-elec-curr').value = 0;
+      document.getElementById('bill-water-prev').value = 0;
+      document.getElementById('bill-water-curr').value = 0;
+    }
+
+    // คำนวณและทำพรีวิวใบแจ้งหนี้แบบสด (Live Preview)
+    function calculateBillInvoice() {
+      const roomId = document.getElementById('billing-room-select').value;
+      if (!roomId) return;
+
+      const room = roomsData.find(r => r.id === roomId);
+      if (!room) return;
+
+      // ค่าใช้จ่าย
+      const baseRent = parseFloat(room.rent) || 0;
+      
+      const elecPrev = parseFloat(document.getElementById('bill-elec-prev').value) || 0;
+      const elecCurr = parseFloat(document.getElementById('bill-elec-curr').value) || 0;
+      const elecUnits = Math.max(0, elecCurr - elecPrev);
+      const elecCost = elecUnits * electricRate;
+
+      const waterPrev = parseFloat(document.getElementById('bill-water-prev').value) || 0;
+      const waterCurr = parseFloat(document.getElementById('bill-water-curr').value) || 0;
+      const waterUnits = Math.max(0, waterCurr - waterPrev);
+      const waterCost = waterUnits * waterRate;
+
+      const otherName = document.getElementById('bill-other-name').value || 'บริการเสริมพิเศษอื่นๆ';
+      const otherPrice = parseFloat(document.getElementById('bill-other-price').value) || 0;
+
+      const grandTotal = baseRent + elecCost + waterCost + otherPrice;
+
+      // อัปเดตข้อมูลพรีวิว
+      document.getElementById('bill-print-room-id').innerText = room.id;
+      document.getElementById('bill-print-date').innerText = new Date().toLocaleDateString('th-TH');
+      document.getElementById('bill-print-operator').innerText = operatorName;
+      document.getElementById('bill-print-tenant-name').innerText = room.tenantName;
+
+      const itemsTbody = document.getElementById('bill-print-items');
+      itemsTbody.innerHTML = `
+        <tr class="border-b border-slate-100">
+          <td class="py-2">ค่าเช่าหลัก (ห้องพัก)</td>
+          <td class="py-2 text-center">-</td>
+          <td class="py-2 text-right">1</td>
+          <td class="py-2 text-right">${baseRent.toFixed(2)}</td>
+          <td class="py-2 text-right font-semibold">${baseRent.toFixed(2)}</td>
+        </tr>
+        <tr class="border-b border-slate-100">
+          <td class="py-2">ค่าไฟฟ้าประจำเดือน</td>
+          <td class="py-2 text-center text-slate-400">${elecPrev} / ${elecCurr}</td>
+          <td class="py-2 text-right">${elecUnits}</td>
+          <td class="py-2 text-right">${electricRate.toFixed(2)}</td>
+          <td class="py-2 text-right font-semibold">${elecCost.toFixed(2)}</td>
+        </tr>
+        <tr class="border-b border-slate-100">
+          <td class="py-2">ค่าน้ำประปาประจำเดือน</td>
+          <td class="py-2 text-center text-slate-400">${waterPrev} / ${waterCurr}</td>
+          <td class="py-2 text-right">${waterUnits}</td>
+          <td class="py-2 text-right">${waterRate.toFixed(2)}</td>
+          <td class="py-2 text-right font-semibold">${waterCost.toFixed(2)}</td>
+        </tr>
+      `;
+
+      if (otherPrice > 0) {
+        itemsTbody.innerHTML += `
+          <tr class="border-b border-slate-100">
+            <td class="py-2">${otherName}</td>
+            <td class="py-2 text-center">-</td>
+            <td class="py-2 text-right">1</td>
+            <td class="py-2 text-right">${otherPrice.toFixed(2)}</td>
+            <td class="py-2 text-right font-semibold">${otherPrice.toFixed(2)}</td>
+          </tr>
+        `;
+      }
+
+      document.getElementById('bill-print-total').innerText = `${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})} ฿`;
+    }
+
+    // พิมพ์หรือแปลงใบเสร็จบิลเป็น PDF
+    function printInvoice() {
+      window.print();
+    }
+
+    // บันทึกและซิงก์ข้อมูลไป Google Sheets
+    function saveBillingData() {
+      const roomId = document.getElementById('billing-room-select').value;
+      if (!roomId) return;
+
+      const roomIndex = roomsData.findIndex(r => r.id === roomId);
+      if (roomIndex === -1) return;
+
+      const elecCurr = parseFloat(document.getElementById('bill-elec-curr').value) || 0;
+      const waterCurr = parseFloat(document.getElementById('bill-water-curr').value) || 0;
+      const baseRent = parseFloat(roomsData[roomIndex].rent) || 0;
+      const otherPrice = parseFloat(document.getElementById('bill-other-price').value) || 0;
+
+      // คำนวณยอดรวมทั้งหมด
+      const elecPrev = roomsData[roomIndex].electricMeter || 0;
+      const elecCost = Math.max(0, elecCurr - elecPrev) * electricRate;
+      const waterPrev = roomsData[roomIndex].waterMeter || 0;
+      const waterCost = Math.max(0, waterCurr - waterPrev) * waterRate;
+      const grandTotal = baseRent + elecCost + waterCost + otherPrice;
+
+      // อัปเดตมิเตอร์ใหม่สำหรับใช้ในรอบบิลถัดไป
+      roomsData[roomIndex].electricMeter = elecCurr;
+      roomsData[roomIndex].waterMeter = waterCurr;
+      saveRoomsToLocal();
+
+      // บันทึกประวัติและพรีวิว
+      addAuditLog(`สร้างใบแจ้งหนี้ห้อง ${roomId} ยอดเงิน: ${grandTotal.toLocaleString()} บาท`);
+
+      // ส่งข้อมูลไปยัง Google Sheets
+      if (googleSheetUrl) {
+        sendToGoogleSheet({
+          roomId: roomId,
+          tenantName: roomsData[roomIndex].tenantName,
+          actionType: "คำนวณบิลและมิเตอร์",
+          details: `ไฟหน่วยใหม่: ${elecCurr} (ใช้ไป ${elecCurr-elecPrev}), น้ำหน่วยใหม่: ${waterCurr} (ใช้ไป ${waterCurr-waterPrev})`,
+          operator: operatorName,
+          totalAmount: grandTotal
+        });
+      } else {
+        showFloatingNotification("บันทึกข้อมูลเรียบร้อย (ไม่ได้เชื่อมต่อ Google Sheet)");
+      }
+
+      // โหลดการแสดงผลใหม่
+      renderTenantTable();
+      calculateBillInvoice();
+    }
+
+    // คอลแบ็คฟังก์ชั่นสำหรับผู้บันทึกข้อมูลส่วนบุคคล
+    function openUserModal() {
+      document.getElementById('modal-operator-name').value = operatorName;
+      document.getElementById('user-modal').classList.remove('hidden');
+    }
+
+    function closeUserModal() {
+      document.getElementById('user-modal').classList.add('hidden');
+    }
+
+    function saveOperatorName() {
+      const newName = document.getElementById('modal-operator-name').value.trim();
+      if (newName) {
+        operatorName = newName;
+        localStorage.setItem('operator_name', operatorName);
+        document.getElementById('current-user-display').innerText = `ผู้บันทึก: ${operatorName}`;
+        closeUserModal();
+        addAuditLog(`เปลี่ยนผู้บันทึกระบบเป็น: ${operatorName}`);
+      }
+    }
+
+    // ระบบแจ้งความเสียหายพื้นที่ส่วนกลาง
+    function submitMaintenanceReport() {
+      const location = document.getElementById('maint-location').value;
+      const priority = document.querySelector('input[name="maint-priority"]:checked').value;
+      const detail = document.getElementById('maint-details').value.trim();
+
+      if (!detail) {
+        alert("กรุณากรอกรายละเอียดปัญหา");
+        return;
+      }
+
+      const now = new Date();
+      const dateStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      const newReport = {
+        id: maintenanceData.length + 1,
+        datetime: dateStr,
+        location: location,
+        detail: detail,
+        priority: priority,
+        status: "รอดำเนินการ"
+      };
+
+      maintenanceData.unshift(newReport);
+      document.getElementById('maint-details').value = '';
+      
+      addAuditLog(`แจ้งซ่อมส่วนกลาง (${location}) ระดับ: ${priority}`);
+      renderMaintenanceTable();
+
+      // ซิงก์ลง Google Sheet หากเชื่อมต่อ
+      if (googleSheetUrl) {
+        sendToGoogleSheet({
+          roomId: "ส่วนกลาง",
+          tenantName: "-",
+          actionType: "แจ้งซ่อมบำรุงส่วนกลาง",
+          details: `สถานที่: ${location}, อาการชำรุด: ${detail}, ลำดับความสำคัญ: ${priority}`,
+          operator: operatorName,
+          totalAmount: 0
+        });
+      }
+    }
+
+    // การเรนเดอร์ข้อมูลรายการปัญหาพื้นที่ส่วนกลาง
+    function renderMaintenanceTable() {
+      const tbody = document.getElementById('maintenance-table-body');
+      tbody.innerHTML = '';
+
+      maintenanceData.forEach(item => {
+        let badgeColor = "";
+        if (item.priority === "สูง") badgeColor = "bg-rose-100 text-rose-800";
+        else if (item.priority === "ปานกลาง") badgeColor = "bg-amber-100 text-amber-800";
+        else badgeColor = "bg-slate-100 text-slate-800";
+
+        let statusColor = item.status === "เสร็จสิ้น" ? "text-emerald-600 font-bold" : "text-amber-600 font-bold";
+
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50 border-b border-slate-100";
+        tr.innerHTML = `
+          <td class="py-3 px-3 text-slate-400">${item.datetime}</td>
+          <td class="py-3 px-3 font-semibold text-slate-800">${item.location}</td>
+          <td class="py-3 px-3 max-w-xs truncate" title="${item.detail}">${item.detail}</td>
+          <td class="py-3 px-3">
+            <span class="${badgeColor} px-2 py-0.5 rounded-full font-bold text-[10px]">${item.priority}</span>
+          </td>
+          <td class="py-3 px-3 ${statusColor}">${item.status}</td>
+          <td class="py-3 px-3 text-right">
+            ${item.status !== "เสร็จสิ้น" ? `<button onclick="completeMaintenance(${item.id})" class="bg-emerald-50 text-emerald-600 hover:bg-emerald-100 font-bold px-2 py-1 rounded">อัปเดตงานเสร็จสิ้น</button>` : `<span class="text-slate-400">เรียบร้อย</span>`}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    // อัปเดตงานบำรุงรักษาให้เสร็จสิ้น
+    function completeMaintenance(id) {
+      const index = maintenanceData.findIndex(item => item.id === id);
+      if (index !== -1) {
+        maintenanceData[index].status = "เสร็จสิ้น";
+        addAuditLog(`แก้ไขปัญหาพื้นที่ส่วนกลางเรียบร้อย (${maintenanceData[index].location})`);
+        renderMaintenanceTable();
+      }
+    }
+
+    // ระบบแจ้งเตือนสัญญาเช่าน้อยกว่า 2 เดือน
+    function checkContractAlerts() {
+      const alertBanner = document.getElementById('contract-alert-banner');
+      const alertList = document.getElementById('contract-alert-list');
+      alertList.innerHTML = '';
+
+      const today = new Date();
+      let alertCount = 0;
+
+      roomsData.forEach(room => {
+        if (room.status === 'ไม่ว่าง' && room.contractEnd) {
+          const endDate = new Date(room.contractEnd);
+          // คำนวณความต่างเวลา
+          const diffTime = endDate - today;
+          const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+          
+          if (diffDays <= 60 && diffDays >= 0) {
+            alertCount++;
+            const p = document.createElement('p');
+            p.className = "mt-1";
+            p.innerHTML = `<i class="fa-solid fa-bell mr-1 text-amber-600 animate-bounce"></i> <strong>ห้อง ${room.id}</strong> - ผู้เช่า: ${room.tenantName} สัญญาเช่ากำลังจะสิ้นสุดในวันที่ ${formatDate(room.contractEnd)} (เหลืออีก ${diffDays} วัน)`;
+            alertList.appendChild(p);
+          }
+        }
+      });
+
+      if (alertCount > 0) {
+        alertBanner.classList.remove('hidden');
+      } else {
+        alertBanner.classList.add('hidden');
+      }
+    }
+
+    function closeContractAlert() {
+      document.getElementById('contract-alert-banner').classList.add('hidden');
+    }
+
+    // การตั้งค่า Google Sheets
+    function saveSheetSettings() {
+      const url = document.getElementById('setting-sheet-url').value.trim();
+      googleSheetUrl = url;
+      localStorage.setItem('setting_sheet_url', url);
+      updateSheetSyncStatus();
+      addAuditLog("ตั้งค่าการเชื่อมต่อ Google Sheets Web App");
+      testSyncConnection();
+    }
+
+    // ทดสอบส่งข้อมูลทริกเกอร์ Google Sheet
+    function testSyncConnection() {
+      const resultEl = document.getElementById('sync-test-result');
+      resultEl.classList.remove('hidden');
+      resultEl.className = "p-3 rounded-lg text-xs font-medium bg-amber-50 text-amber-700 mt-2";
+      resultEl.innerHTML = '<i class="fa-solid fa-spinner animate-spin mr-1"></i> กำลังทดสอบส่งข้อมูลไปยัง Google Apps Script...';
+
+      if (!googleSheetUrl) {
+        resultEl.className = "p-3 rounded-lg text-xs font-medium bg-red-100 text-red-700 mt-2";
+        resultEl.innerHTML = '<i class="fa-solid fa-circle-xmark mr-1"></i> กรุณากรอก Web App URL';
+        return;
+      }
+
+      sendToGoogleSheet({
+        roomId: "ทดสอบ",
+        tenantName: "ระบบ",
+        actionType: "ทดสอบเชื่อมต่อระบบ",
+        details: "กำลังทดสอบความเข้ากันได้ของระบบจัดเก็บบน Google Sheet API",
+        operator: operatorName,
+        totalAmount: 0
+      }, function(success, msg) {
+        if (success) {
+          resultEl.className = "p-3 rounded-lg text-xs font-medium bg-emerald-100 text-emerald-700 mt-2";
+          resultEl.innerHTML = `<i class="fa-solid fa-circle-check mr-1"></i> เชื่อมต่อสำเร็จ! ${msg}`;
+        } else {
+          resultEl.className = "p-3 rounded-lg text-xs font-medium bg-red-100 text-red-700 mt-2";
+          resultEl.innerHTML = `<i class="fa-solid fa-circle-xmark mr-1"></i> ล้มเหลว: ${msg}`;
+        }
+      });
+    }
+
+    function updateSheetSyncStatus() {
+      const statusEl = document.getElementById('sheet-sync-status');
+      if (googleSheetUrl) {
+        statusEl.innerHTML = '<i class="fa-solid fa-cloud-arrow-up text-emerald-500 mr-1"></i>เชื่อมต่อ Google Sheet แล้ว';
+      } else {
+        statusEl.innerHTML = '<i class="fa-solid fa-circle-dot text-red-500 mr-1"></i>ไม่ได้เชื่อมต่อ Google Sheet';
+      }
+    }
+
+    // ส่ง POST ไปยัง Google Sheet Web App (พร้อมระบบ retry และ Backoff)
+    async function sendToGoogleSheet(payload, callback = null) {
+      if (!googleSheetUrl) {
+        if (callback) callback(false, "ไม่ได้ตั้งค่า URL");
+        return;
+      }
+
+      let attempt = 1;
+      let success = false;
+      let delay = 1000;
+      let responseData = null;
+
+      while (attempt <= 5 && !success) {
+        try {
+          const response = await fetch(googleSheetUrl, {
+            method: 'POST',
+            mode: 'no-cors', // ความปลอดภัยส่วนใหญ่อาจเป็น no-cors สำหรับ Web App ใน iframe
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+          });
+
+          // เนื่องจากใช้ no-cors อาจมองเห็นสถานะเป็น 0
+          success = true; 
+        } catch (error) {
+          if (attempt === 5) {
+            if (callback) callback(false, error.toString());
+            return;
+          }
+          await new Promise(resolve => setTimeout(resolve, delay));
+          delay *= 2; // เพิ่มเวลาดีเลย์แบบทวีคูณ
+          attempt++;
         }
       }
-    </style>
-  </head>
-  <body class="bg-slate-50">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+
+      if (success) {
+        if (callback) callback(true, "เชื่อมโยงข้อมูลสำเร็จแล้ว");
+        showFloatingNotification("ส่งข้อมูลไป Google Sheets สำเร็จ");
+      }
+    }
+
+    // บันทึก Log การแก้ไขรายการ
+    function addAuditLog(action) {
+      const now = new Date();
+      const timeStr = `${now.getDate().toString().padStart(2, '0')}/${(now.getMonth()+1).toString().padStart(2, '0')}/${now.getFullYear()} ${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      auditLogs.unshift({
+        timestamp: timeStr,
+        action: action,
+        operator: operatorName
+      });
+
+      if (auditLogs.length > 50) auditLogs.pop(); // จำกัด 50 รายการ
+      renderAuditLog();
+    }
+
+    function renderAuditLog() {
+      const tbody = document.getElementById('audit-log-table');
+      if (!tbody) return;
+      tbody.innerHTML = '';
+
+      auditLogs.forEach(log => {
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-slate-50";
+        tr.innerHTML = `
+          <td class="py-2.5 px-4 text-xs text-slate-400">${log.timestamp}</td>
+          <td class="py-2.5 px-4 text-xs font-semibold text-slate-700">${log.action}</td>
+          <td class="py-2.5 px-4 text-xs text-slate-500">${log.operator}</td>
+          <td class="py-2.5 px-4 text-xs text-right text-emerald-600"><i class="fa-solid fa-cloud-arrow-up mr-1"></i>เรียบร้อย</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function clearAuditLog() {
+      auditLogs = [{ timestamp: new Date().toLocaleDateString('th-TH'), action: "เคลียร์ประวัติเก่าแล้ว", operator: operatorName }];
+      renderAuditLog();
+    }
+
+    // เครื่องมือจัดการวันที่อย่างง่าย
+    function formatDate(dateStr) {
+      const date = new Date(dateStr);
+      return date.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
+    }
+
+    // ฟังก์ชันสร้างหน้าต่างแจ้งเตือนแบบลอย
+    function showFloatingNotification(msg) {
+      const notif = document.createElement('div');
+      notif.className = "fixed bottom-5 right-5 bg-indigo-900 text-white text-xs px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 z-50 animate-bounce";
+      notif.innerHTML = `<i class="fa-solid fa-circle-check text-emerald-400"></i> ${msg}`;
+      document.body.appendChild(notif);
+      setTimeout(() => notif.remove(), 3000);
+    }
+  </script>
+</body>
 </html>
