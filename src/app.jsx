@@ -668,7 +668,7 @@ export default function App() {
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-5 rounded-2xl shadow-sm border border-slate-100">
               <div>
                 <h3 className="text-base font-bold text-slate-800">จัดการโครงสร้างผังห้องพัก</h3>
-                <p className="text-xs text-slate-500">คุณสามารถปรับแต่งชื่อห้อง/เลขห้องได้ตามอิสระ หรือกดปุ่มเพิ่ม/ลดขอบเขตห้องพักได้</p>
+                <p className="text-xs text-slate-500">คุณสามารถเปลี่ยนเลขห้องได้ทันทีที่ช่องเลขห้อง หรือกดปุ่ม <strong>"ปรับแต่งข้อมูลห้อง"</strong> ในแต่ละห้องได้</p>
               </div>
               <div className="flex items-center gap-3">
                 <button 
@@ -687,37 +687,73 @@ export default function App() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
               {rooms.map(room => {
-                let colorClass = "bg-emerald-50 border-emerald-200 text-emerald-800";
+                let colorClass = "bg-emerald-50/60 border-emerald-200 text-emerald-900";
+                let badgeClass = "bg-emerald-100 text-emerald-800";
                 let icon = <i className="fa-solid fa-house-circle-check text-xl text-emerald-500"></i>;
 
                 if (room.status === 'ไม่ว่าง') {
-                  colorClass = "bg-rose-50 border-rose-200 text-rose-800";
+                  colorClass = "bg-rose-50/60 border-rose-200 text-rose-900";
+                  badgeClass = "bg-rose-100 text-rose-800";
                   icon = <i className="fa-solid fa-house-user text-xl text-rose-500"></i>;
                 } else if (room.status === 'จองแล้ว') {
-                  colorClass = "bg-sky-50 border-sky-200 text-sky-800";
+                  colorClass = "bg-sky-50/60 border-sky-200 text-sky-900";
+                  badgeClass = "bg-sky-100 text-sky-800";
                   icon = <i className="fa-solid fa-handshake text-xl text-sky-500"></i>;
                 } else if (room.status === 'ชำรุด') {
-                  colorClass = "bg-amber-50 border-amber-200 text-amber-800";
+                  colorClass = "bg-amber-50/60 border-amber-200 text-amber-900";
+                  badgeClass = "bg-amber-100 text-amber-800";
                   icon = <i className="fa-solid fa-screwdriver-wrench text-xl text-amber-500"></i>;
                 }
 
                 return (
                   <div 
                     key={room.id}
-                    onClick={() => openRoomModal(room)}
-                    className={`p-4 rounded-2xl border cursor-pointer hover:scale-[1.02] transition-all duration-150 flex flex-col justify-between h-32 shadow-sm ${colorClass}`}
+                    className={`p-4 rounded-2xl border flex flex-col justify-between shadow-sm transition-all duration-150 ${colorClass}`}
                   >
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm font-bold truncate pr-1">ห้อง {room.id}</span>
-                      {icon}
+                    <div>
+                      <div className="flex justify-between items-center mb-2 pb-2 border-b border-slate-200/60">
+                        <div className="flex items-center gap-1 font-bold">
+                          <span className="text-xs text-slate-500">ห้อง</span>
+                          <input 
+                            type="text" 
+                            defaultValue={room.id}
+                            key={room.id}
+                            onBlur={(e) => handleRoomIdChange(room.id, e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.target.blur();
+                              }
+                            }}
+                            className="w-20 px-2 py-0.5 text-sm font-extrabold text-indigo-900 bg-white border border-slate-300 hover:border-indigo-400 focus:border-indigo-600 rounded text-center shadow-xs transition"
+                            title="พิมพ์แก้ไขเลขห้องตรงนี้ แล้วกด Enter หรือคลิกข้างนอกเพื่อเซฟ"
+                          />
+                        </div>
+                        {icon}
+                      </div>
+
+                      <div className="space-y-1.5 my-2">
+                        <div className="flex justify-between items-center">
+                          <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${badgeClass}`}>
+                            {room.status}
+                          </span>
+                          <span className="text-[11px] font-bold text-slate-700">{room.rent.toLocaleString()} ฿/เดือน</span>
+                        </div>
+                        <p className="text-xs font-semibold truncate text-slate-800">
+                          <i className="fa-regular fa-user mr-1 text-slate-400"></i>
+                          {room.tenantName || 'ว่าง (ไม่มีผู้เช่า)'}
+                        </p>
+                      </div>
                     </div>
-                    <div className="mt-2 space-y-0.5">
-                      <p className="text-[9px] font-bold uppercase text-slate-400">{room.status}</p>
-                      <p className="text-xs font-bold truncate text-slate-800">{room.tenantName || 'ว่าง (ไม่มีผู้เช่า)'}</p>
-                      <p className="text-[10px] font-semibold text-slate-500">{room.rent.toLocaleString()} บาท/เดือน</p>
-                    </div>
+
+                    {/* ปุ่มปรับแต่งชัดเจน */}
+                    <button 
+                      onClick={() => openRoomModal(room)}
+                      className="mt-3 w-full py-2 px-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 shadow-sm transition duration-150"
+                    >
+                      <i className="fa-solid fa-sliders"></i> ปรับแต่งข้อมูลห้อง
+                    </button>
                   </div>
                 );
               })}
@@ -1216,17 +1252,19 @@ export default function App() {
             </div>
 
             <div className="space-y-3.5 text-xs">
-              {}
-              <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-1">
-                <label className="block font-bold text-indigo-900"><i className="fa-solid fa-arrow-down-1-9 mr-1"></i>เลขที่ห้องพัก / ชื่อห้อง (แก้ไขเลขห้องที่นี่)</label>
+              {/* ฟิลด์แก้ไขชื่อห้อง/เลขห้อง */}
+              <div className="p-3.5 bg-indigo-50/80 rounded-xl border border-indigo-200 space-y-1.5">
+                <label className="block font-bold text-indigo-900">
+                  <i className="fa-solid fa-pen-to-square mr-1"></i>เลขที่ห้องพัก / ชื่อห้อง (เปลี่ยนเลขห้องได้ที่นี่)
+                </label>
                 <input 
                   type="text" 
                   value={modalRoomId} 
                   onChange={(e) => setModalRoomId(e.target.value)}
                   placeholder="เช่น 101, 101-VIP, ห้องริมนํ้า" 
-                  className="w-full border border-indigo-200 rounded-lg p-2 font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                  className="w-full border-2 border-indigo-300 rounded-lg p-2.5 font-bold text-sm text-indigo-950 focus:border-indigo-600 focus:outline-none bg-white shadow-inner"
                 />
-                <p className="text-[10px] text-slate-500"><i className="fa-solid fa-circle-info mr-1 text-indigo-500"></i>เปลี่ยนเลขห้องเพื่อจัดเรียง ออกบิล หรือบันทึกคลาวด์ได้ทันที</p>
+                <p className="text-[10px] text-slate-600"><i className="fa-solid fa-circle-info mr-1 text-indigo-500"></i>เปลี่ยนเลขห้องตรงนี้เพื่ออัปเดตการจัดเรียง ออกบิล หรือบันทึกคลาวด์ได้ทันที</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
