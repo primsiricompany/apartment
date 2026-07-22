@@ -249,6 +249,29 @@ export default function App() {
     }
   };
 
+  // เปลี่ยนแปลงเลขห้อง / ชื่อห้องโดยตรง
+  const handleRoomIdChange = (oldId, newId) => {
+    const trimmed = newId.trim();
+    if (!trimmed || trimmed === oldId) return;
+
+    // ตรวจสอบชื่อห้องซ้ำกับห้องอื่นในระบบ
+    if (rooms.some(r => r.id === trimmed && r.id !== oldId)) {
+      showFloatingNotification(`เลขห้อง "${trimmed}" มีอยู่ในระบบแล้ว`);
+      return;
+    }
+
+    const updated = rooms.map(r => r.id === oldId ? { ...r, id: trimmed } : r);
+    saveRooms(updated);
+
+    // ปรับเปลี่ยน ID ของห้องในกรณีที่กำลังเลือกคำนวณบิลห้องนี้อยู่
+    if (billingRoomId === oldId) {
+      setBillingRoomId(trimmed);
+    }
+
+    addAuditLog(`แก้ไขเลขห้อง: จาก ${oldId} เป็น ${trimmed}`);
+    showFloatingNotification(`เปลี่ยนเลขห้องจาก ${oldId} เป็น ${trimmed} เรียบร้อยแล้ว`);
+  };
+
   // การคำนวณบิล
   const selectedRoomForBill = rooms.find(r => r.id === billingRoomId) || null;
 
@@ -730,7 +753,25 @@ export default function App() {
                   <tbody className="divide-y divide-slate-100 text-xs">
                     {filteredRoomsForTenant.map(room => (
                       <tr key={room.id} className="hover:bg-slate-50/50">
-                        <td className="py-3 px-4 font-bold text-indigo-900">ห้อง {room.id}</td>
+                        {}
+                        <td className="py-3 px-4 font-bold text-indigo-900">
+                          <div className="flex items-center gap-1">
+                            <span className="text-slate-400 font-normal">ห้อง</span>
+                            <input 
+                              type="text" 
+                              defaultValue={room.id}
+                              key={room.id}
+                              onBlur={(e) => handleRoomIdChange(room.id, e.target.value)}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  e.target.blur();
+                                }
+                              }}
+                              className="w-20 border border-slate-200 hover:border-indigo-300 focus:border-indigo-500 rounded px-1.5 py-0.5 text-center font-bold text-indigo-900 bg-white shadow-sm transition focus:ring-2 focus:ring-indigo-200"
+                              title="คลิกเพื่อแก้ไขเลขห้องได้ทันที (กด Enter หรือคลิกข้างนอกเพื่อบันทึก)"
+                            />
+                          </div>
+                        </td>
                         <td className="py-3 px-4">
                           <span className={`px-2 py-0.5 rounded-full font-bold text-[10px] ${
                             room.status === 'ว่าง' ? 'bg-emerald-100 text-emerald-800' : 
@@ -1175,17 +1216,17 @@ export default function App() {
             </div>
 
             <div className="space-y-3.5 text-xs">
-              {/* จุดเพิ่มเติม: ฟิลด์แก้ไขชื่อห้องพัก / เลขห้องพัก */}
+              {}
               <div className="p-3 bg-indigo-50/50 rounded-xl border border-indigo-100 space-y-1">
-                <label className="block font-bold text-indigo-900"><i className="fa-regular fa-pen-to-square mr-1"></i>ชื่อห้องพัก / เลขห้องพัก (แก้ไขชื่อห้องได้ที่นี่)</label>
+                <label className="block font-bold text-indigo-900"><i className="fa-solid fa-arrow-down-1-9 mr-1"></i>เลขที่ห้องพัก / ชื่อห้อง (แก้ไขเลขห้องที่นี่)</label>
                 <input 
                   type="text" 
                   value={modalRoomId} 
                   onChange={(e) => setModalRoomId(e.target.value)}
                   placeholder="เช่น 101, 101-VIP, ห้องริมนํ้า" 
-                  className="w-full border border-indigo-200 rounded-lg p-2 font-bold text-slate-800 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
+                  className="w-full border border-indigo-200 rounded-lg p-2 font-bold text-indigo-900 focus:ring-2 focus:ring-indigo-500 focus:outline-none bg-white"
                 />
-                <p className="text-[10px] text-slate-400">คุณสามารถเปลี่ยนชื่อหรือเลขห้องเพื่อให้ออกบิลและจัดเรียงได้ตามที่คุณต้องการ</p>
+                <p className="text-[10px] text-slate-500"><i className="fa-solid fa-circle-info mr-1 text-indigo-500"></i>เปลี่ยนเลขห้องเพื่อจัดเรียง ออกบิล หรือบันทึกคลาวด์ได้ทันที</p>
               </div>
 
               <div className="grid grid-cols-2 gap-3">
